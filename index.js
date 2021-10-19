@@ -1,6 +1,9 @@
+'use strict';
+
 require('dotenv').config()
 const express = require("express");
 const app = express();
+const { getGamesDetails, knex } = require('./models');
 
 const { Telegraf, Markup } = require('telegraf')
 
@@ -14,47 +17,108 @@ bot.command('start', ctx => {
     })
 })
 
-// const gameLink = "https://stg-cf-arcade-desert-road.appspot.com/"
-// const gameShortName = "Desert Road";
+const gamesList = [];
+const gameChunks = [];
+const getGamesData = async () => {
+  const games = await getGamesDetails();
+  const list = [];
 
-// const markup = Markup.inlineKeyboard([
-//   Markup.button.game('🎮 Play now!'),
-//   Markup.button.url('Telegraf help', 'http://telegraf.js.org')
-// ])
+  for (const game of games) {
+    gamesList.push(game.full_name);
+    list.push(game.full_name);
+  }
+  while (list.length) {
+    gameChunks.push(list.splice(0, 2));
+  }
+}
+getGamesData();
 
-//method that displays the inline keyboard buttons 
-bot.hears('animals', ctx => {
-  console.log(ctx)
-  let animalMessage = `great, here are pictures of animals you would love`;
-  bot.telegram.sendMessage(ctx.chat.id, animalMessage, {
-    reply_markup: {
-      inline_keyboard: [
-        [{
-            text: "dog",
-            callback_data: 'dog'
-          },
-          {
-            text: "cat",
-            callback_data: 'cat'
-          }
-        ],
-      ]
-    }
+const showGameMarkup = async (gameShortName, ctx) => {
+  const markup = Markup.inlineKeyboard([
+    Markup.button.game('🎮 Play now!'),
+    Markup.button.url('Telegraf help', 'http://telegraf.js.org')
+  ])
+
+  const userId = ctx.update.message.from.id;
+
+  ctx.replyWithGame(gameShortName, markup)
+
+  bot.gameQuery( async (ctx) => {
+
+    const gameData = await knex('Disciplines')
+      .select('link')
+      .where('full_name', gameShortName)
+
+    let gameLink = `${gameData[0].link}?token=${
+      process.env.TELEGRAM_BOT_TOKEN
+    }`
+    let message = ctx.update.callback_query.message;
+    gameLink = `${gameLink}&user_id=${
+      userId
+    }&message_id=${
+      message.message_id
+    }&chat_id=${message.chat.id}`
+    ctx.answerGameQuery(gameLink)
   })
+}
+
+
+bot.hears('Get App & Win Cash', async (ctx) => {
+  const championfyDownloadLink = 'https://www.championfy.com/'
+
+  bot.telegram.sendMessage(ctx.chat.id, championfyDownloadLink)
 })
 
-bot.start((ctx) => ctx.reply('Welcome'))
-// bot.help((ctx) => ctx.reply('Send me a sticker'))
-// bot.on('sticker', (ctx) => ctx.reply('👍'))
-bot.hears('hi', (ctx) => ctx.reply('Hey there'))
+bot.hears('Games', async (ctx) => {
 
-// bot.start((ctx) => ctx.replyWithGame(''))
-// bot.command('foo', (ctx) => ctx.replyWithGame(gameShortName, markup))
-// bot.gameQuery((ctx) => ctx.answerGameQuery(gameLink))
+  const text = 'Please select a game from below list'
+
+  //constructor for providing games to the bot
+  const requestGamesKeyboard = {
+    "reply_markup": {
+      "one_time_keyboard": true,
+      "keyboard": gameChunks
+    }
+  };
+  bot.telegram.sendMessage(ctx.chat.id, text, requestGamesKeyboard);
+})
+
+bot.hears('About us', async (ctx) => {
+  const text = 'Championfy is the top Esports platform for casual mobile gamers.Gamers can join daily online. \n' +
+  'Esports tournaments for their favourite skill-based mobile games, have fun and win rewards. \n' + 
+  'Games on Championfy requires players to have Dexterity skills, Strategic Planning skills,' +
+  'Observation skills, Problem Solving skills & More';
+
+  bot.telegram.sendMessage(ctx.chat.id, text)
+})
+
+bot.on('message', async (msg) => {
+  const text = msg.update.message.text;
+ 
+  if (gamesList.includes(text)) {
+    await showGameMarkup(text, msg)
+  } else {
+    const homeKeyboard = {
+      "reply_markup": {
+        "one_time_keyboard": true,
+        "keyboard": [
+          [ 'Games','About us' ],
+          [ 'Join Championfy Channel', 'Get App & Win Cash' ]
+        ]
+      } 
+    }
+    const messageForFalseCommand = `👀 Sorry friend! Didn't understand that one. \n\nCan you help a hamster 🐹 out and pick one of the options below 👇👇👇`
+    bot.telegram.sendMessage(
+      msg.update.message.chat.id,
+      messageForFalseCommand,
+      homeKeyboard,
+    )
+  }
+})
 
 bot.launch()
 
-port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Express server is listening on ${port}`);
 });
