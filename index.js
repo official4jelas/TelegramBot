@@ -13,7 +13,7 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN)
 
 bot.command('start', ctx => {
     console.log(ctx.from)
-    bot.telegram.sendMessage(ctx.chat.id, 'hello there! Welcome to my new telegram bot.', {
+    bot.telegram.sendMessage(ctx.chat.id, 'Hello there! Welcome to my new telegram bot.', {
     })
 })
 
@@ -84,10 +84,7 @@ bot.hears('Games', async (ctx) => {
 })
 
 bot.hears('About us', async (ctx) => {
-  const text = 'Championfy is the top Esports platform for casual mobile gamers.Gamers can join daily online. \n' +
-  'Esports tournaments for their favourite skill-based mobile games, have fun and win rewards. \n' + 
-  'Games on Championfy requires players to have Dexterity skills, Strategic Planning skills,' +
-  'Observation skills, Problem Solving skills & More';
+  const text = 'Add anything you want to tell about your app.';
 
   bot.telegram.sendMessage(ctx.chat.id, text)
 })
@@ -103,7 +100,7 @@ bot.on('message', async (msg) => {
         "one_time_keyboard": true,
         "keyboard": [
           [ 'Games','About us' ],
-          [ 'Join Championfy Channel', 'Get App & Win Cash' ]
+          [ 'Join Channel', 'Get App & Win Cash' ]
         ]
       } 
     }
