@@ -41,13 +41,13 @@ const showGameMarkup = async (gameShortName, ctx) => {
 
   const userId = ctx.update.message.from.id;
 
-  ctx.replyWithGame(gameShortName, markup)
+  ctx.replyWithGame(gameShortName, markup);
 
   bot.gameQuery( async (ctx) => {
 
     const gameData = await knex('Disciplines')
       .select('link')
-      .where('full_name', gameShortName)
+      .where('full_name', gameShortName);
 
     let gameLink = `${gameData[0].link}?token=${
       process.env.TELEGRAM_BOT_TOKEN
@@ -58,20 +58,25 @@ const showGameMarkup = async (gameShortName, ctx) => {
     }&message_id=${
       message.message_id
     }&chat_id=${message.chat.id}`
-    ctx.answerGameQuery(gameLink)
+    ctx.answerGameQuery(gameLink);
   })
 }
 
+bot.hears('Join Channel', async(ctx) => {
+  const telegramChannleLink = '';
+
+  bot.telegram.sendMessage(ctx.chat.id, telegramChannleLink);
+})
 
 bot.hears('Get App & Win Cash', async (ctx) => {
-  const championfyDownloadLink = 'https://www.championfy.com/'
+  const championfyDownloadLink = 'https://www.championfy.com/';
 
-  bot.telegram.sendMessage(ctx.chat.id, championfyDownloadLink)
+  bot.telegram.sendMessage(ctx.chat.id, championfyDownloadLink);
 })
 
 bot.hears('Games', async (ctx) => {
 
-  const text = 'Please select a game from below list'
+  const text = 'Please select a game from below list';
 
   //constructor for providing games to the bot
   const requestGamesKeyboard = {
@@ -81,19 +86,19 @@ bot.hears('Games', async (ctx) => {
     }
   };
   bot.telegram.sendMessage(ctx.chat.id, text, requestGamesKeyboard);
-})
+});
 
 bot.hears('About us', async (ctx) => {
   const text = 'Add anything you want to tell about your app.';
 
-  bot.telegram.sendMessage(ctx.chat.id, text)
+  bot.telegram.sendMessage(ctx.chat.id, text);
 })
 
 bot.on('message', async (msg) => {
   const text = msg.update.message.text;
  
   if (gamesList.includes(text)) {
-    await showGameMarkup(text, msg)
+    await showGameMarkup(text, msg);
   } else {
     const homeKeyboard = {
       "reply_markup": {
@@ -103,17 +108,17 @@ bot.on('message', async (msg) => {
           [ 'Join Channel', 'Get App & Win Cash' ]
         ]
       } 
-    }
-    const messageForFalseCommand = `👀 Sorry friend! Didn't understand that one. \n\nCan you help a hamster 🐹 out and pick one of the options below 👇👇👇`
+    };
+    const messageForFalseCommand = `👀 Sorry friend! Didn't understand that one. \n\nCan you help a hamster 🐹 out and pick one of the options below 👇👇👇`;
     bot.telegram.sendMessage(
       msg.update.message.chat.id,
       messageForFalseCommand,
       homeKeyboard,
-    )
+    );
   }
 })
 
-bot.launch()
+bot.launch();
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
