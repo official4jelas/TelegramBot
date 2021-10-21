@@ -3,78 +3,87 @@
 require('dotenv').config()
 const express = require("express");
 const app = express();
-const { getGamesDetails, knex } = require('./models');
+const axios = require('axios')
+const { playGame } = require('./actions');
 
-const { Telegraf, Markup } = require('telegraf')
+const { Telegraf } = require('telegraf')
 
 app.use(express.json());
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN)
 
+const homeKeyboard = {
+  "reply_markup": {
+    "one_time_keyboard": true,
+    "keyboard": [
+      [  '▶ Games','💡 About us' ],
+      [ '🤝 Join Channel', '🏆 Get App & Win Cash' ]
+    ]
+  } 
+};
+
 bot.command('start', ctx => {
-    console.log(ctx.from)
-    bot.telegram.sendMessage(ctx.chat.id, 'Hello there! Welcome to my new telegram bot.', {
-    })
+    const text = 'Hello there! Welcome to my new telegram bot, Please pick one of the options below'
+    bot.telegram.sendMessage(ctx.chat.id, text, homeKeyboard)
 })
 
-const gamesList = [];
+const allowedGamesList = [
+  'desert-road',
+  'soccer-online',
+  'jewel-block',
+  'q-math',
+];
 const gameChunks = [];
-const getGamesData = async () => {
-  const games = await getGamesDetails();
-  const list = [];
+const games = {}
 
-  for (const game of games) {
-    gamesList.push(game.full_name);
-    list.push(game.full_name);
-  }
-  while (list.length) {
-    gameChunks.push(list.splice(0, 2));
-  }
-}
-getGamesData();
-
-const showGameMarkup = async (gameShortName, ctx) => {
-  const markup = Markup.inlineKeyboard([
-    Markup.button.game('🎮 Play now!'),
-    Markup.button.url('Telegraf help', 'http://telegraf.js.org')
-  ])
-
-  const userId = ctx.update.message.from.id;
-
-  ctx.replyWithGame(gameShortName, markup);
-
-  bot.gameQuery( async (ctx) => {
-
-    const gameData = await knex('Disciplines')
-      .select('link')
-      .where('full_name', gameShortName);
-
-    let gameLink = `${gameData[0].link}?token=${
-      process.env.TELEGRAM_BOT_TOKEN
-    }`
-    let message = ctx.update.callback_query.message;
-    gameLink = `${gameLink}&user_id=${
-      userId
-    }&message_id=${
-      message.message_id
-    }&chat_id=${message.chat.id}`
-    ctx.answerGameQuery(gameLink);
-  })
+const getGames = async () => {
+  const url = process.env.API_BASE_URL + 'games'
+  const gameNamesList = []
+  axios
+  .get(url)
+    .then((data) => {
+      if (data) {
+        const gamesDetails = data.data;
+        for (const gameDetails of gamesDetails) {
+          if (allowedGamesList.includes(gameDetails.slug)) {
+            gameNamesList.push(`🕹 ${gameDetails.name}`);
+            games[`🕹 ${gameDetails.name}`] = gameDetails;
+          }
+        }
+        while (gameNamesList.length) {
+          gameChunks.push(gameNamesList.splice(0, 2));
+        }
+      }
+    })
+    .catch((error) => {
+      if (error) {
+        console.log(error)
+      }
+    })
 }
 
-bot.hears('Join Channel', async(ctx) => {
+getGames();
+
+
+bot.hears('🤝 Join Channel', async(ctx) => {
   const telegramChannleLink = '';
 
   bot.telegram.sendMessage(ctx.chat.id, telegramChannleLink);
 })
 
-bot.hears('Get App & Win Cash', async (ctx) => {
+bot.hears('🏆 Get App & Win Cash', async (ctx) => {
   const championfyDownloadLink = 'https://www.championfy.com/';
 
   bot.telegram.sendMessage(ctx.chat.id, championfyDownloadLink);
 })
 
-bot.hears('Games', async (ctx) => {
+bot.hears(['hi', 'hey', 'Hi', 'Hey'], async(ctx) => {
+  const helloMessage = 'Hello there! 👋🏻, Play Games and enjoy 👓';
+
+  bot.telegram.sendMessage(ctx.chat.id, helloMessage);
+})
+
+bot.hears(['▶ Games', '▶ games'], async (ctx) => {
 
   const text = 'Please select a game from below list';
 
@@ -88,7 +97,7 @@ bot.hears('Games', async (ctx) => {
   bot.telegram.sendMessage(ctx.chat.id, text, requestGamesKeyboard);
 });
 
-bot.hears('About us', async (ctx) => {
+bot.hears('💡 About us', async (ctx) => {
   const text = 'Add anything you want to tell about your app.';
 
   bot.telegram.sendMessage(ctx.chat.id, text);
@@ -97,18 +106,9 @@ bot.hears('About us', async (ctx) => {
 bot.on('message', async (msg) => {
   const text = msg.update.message.text;
  
-  if (gamesList.includes(text)) {
-    await showGameMarkup(text, msg);
+  if (games.hasOwnProperty(text)) {
+    await playGame(text, msg, bot, games);
   } else {
-    const homeKeyboard = {
-      "reply_markup": {
-        "one_time_keyboard": true,
-        "keyboard": [
-          [ 'Games','About us' ],
-          [ 'Join Channel', 'Get App & Win Cash' ]
-        ]
-      } 
-    };
     const messageForFalseCommand = `👀 Sorry friend! Didn't understand that one. \n\nCan you help a hamster 🐹 out and pick one of the options below 👇👇👇`;
     bot.telegram.sendMessage(
       msg.update.message.chat.id,

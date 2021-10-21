@@ -18,10 +18,9 @@
   },
   "homepage": "https://github.com/bhavnesh2211/TelegramBot#readme",
   "dependencies": {
+    "axios": "^0.23.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "knex": "^0.95.11",
-    "mysql": "^2.18.1",
     "nodemon": "^2.0.13",
     "telegraf": "^4.4.2"
   }
