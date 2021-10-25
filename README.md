@@ -1,5 +1,5 @@
 # Telegram bot
-Source code for championfy telegram bot
+Example of simple telgram game bot.
 
 # How to setup
 
