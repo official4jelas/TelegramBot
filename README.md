@@ -3,11 +3,9 @@ Example of simple telgram game bot.
 
 # How to setup
 
-1. Clone repo
-Using SSH `git@github.com:bhavnesh2211/TelegramBot.git`
-
-OR
-
+1. Clone repo \
+Using SSH `git@github.com:bhavnesh2211/TelegramBot.git` \
+OR \
 Using HTTP `https://github.com/bhavnesh2211/TelegramBot.git`
 
 2. Install module using `npm install`
