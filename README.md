@@ -16,4 +16,4 @@ Using HTTP `https://github.com/bhavnesh2211/TelegramBot.git`
 
 4. Run `npm run start` command it will run local dev server.
 
-5. Seach Telegram bot name as `Your bot name` and select bot.
+5. Seach Telegram bot name as `Your bot name` and select bot. But first you needs to create bot using [BotFather](https://core.telegram.org/bots#3-how-do-i-create-a-bot)
