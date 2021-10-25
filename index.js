@@ -4,9 +4,8 @@ require('dotenv').config()
 const express = require("express");
 const app = express();
 const axios = require('axios')
-const { playGame } = require('./actions');
 
-const { Telegraf } = require('telegraf')
+const { Telegraf, Markup } = require('telegraf')
 
 app.use(express.json());
 
@@ -23,8 +22,9 @@ const homeKeyboard = {
 };
 
 bot.command('start', ctx => {
-    const text = 'Hello there! Welcome to my new telegram bot, Please pick one of the options below'
-    bot.telegram.sendMessage(ctx.chat.id, text, homeKeyboard)
+  console.log(ctx);
+  const text = 'Hello there! Welcome to championfy telegram bot, Please pick one of the options below'
+  bot.telegram.sendMessage(ctx.chat.id, text, homeKeyboard)
 })
 
 const allowedGamesList = [
@@ -34,7 +34,8 @@ const allowedGamesList = [
   'q-math',
 ];
 const gameChunks = [];
-const games = {}
+const games = {};
+let gamesDetails = [];
 
 const getGames = async () => {
   const url = process.env.API_BASE_URL + 'games'
@@ -43,7 +44,7 @@ const getGames = async () => {
   .get(url)
     .then((data) => {
       if (data) {
-        const gamesDetails = data.data;
+        gamesDetails = data.data;
         for (const gameDetails of gamesDetails) {
           if (allowedGamesList.includes(gameDetails.slug)) {
             gameNamesList.push(`🕹 ${gameDetails.name}`);
@@ -68,19 +69,35 @@ getGames();
 bot.hears('🤝 Join Channel', async(ctx) => {
   const telegramChannleLink = '';
 
-  bot.telegram.sendMessage(ctx.chat.id, telegramChannleLink);
+  ctx.reply(telegramChannleLink);
 })
 
 bot.hears('🏆 Get App & Win Cash', async (ctx) => {
   const championfyDownloadLink = 'https://www.championfy.com/';
 
-  bot.telegram.sendMessage(ctx.chat.id, championfyDownloadLink);
+  ctx.reply(championfyDownloadLink);
 })
 
 bot.hears(['hi', 'hey', 'Hi', 'Hey'], async(ctx) => {
-  const helloMessage = 'Hello there! 👋🏻, Play Games and enjoy 👓';
+  console.log(ctx.from);
+  const helloMessage = `Hello there ${ctx.from.first_name}! 👋🏻, Play Games and enjoy 👓, \n Here is some options you can try out`;
 
-  bot.telegram.sendMessage(ctx.chat.id, helloMessage);
+  ctx.reply(helloMessage, homeKeyboard);
+})
+
+
+bot.on('inline_query', async (ctx) => {
+
+  const results = gamesDetails.map((game) => {
+    return {
+      type: 'game',
+      id: game.uid,
+      game_short_name: game.name
+    }
+  });
+
+
+  ctx.answerInlineQuery(results);
 })
 
 bot.hears(['▶ Games', '▶ games'], async (ctx) => {
@@ -94,24 +111,54 @@ bot.hears(['▶ Games', '▶ games'], async (ctx) => {
       "keyboard": gameChunks
     }
   };
-  bot.telegram.sendMessage(ctx.chat.id, text, requestGamesKeyboard);
+  ctx.reply(text, requestGamesKeyboard);
 });
 
 bot.hears('💡 About us', async (ctx) => {
   const text = 'Add anything you want to tell about your app.';
 
-  bot.telegram.sendMessage(ctx.chat.id, text);
+  ctx.reply(text);
 })
 
-bot.on('message', async (msg) => {
-  const text = msg.update.message.text;
+bot.on('callback_query', (ctx) => {
+  const callbackContext = ctx.callbackQuery
+
+  const gameShortName = ctx.callbackQuery.game_short_name
+  const gameData = games[gameShortName];
+  let gameLink = `${gameData.link}?token=${
+    process.env.TELEGRAM_BOT_TOKEN
+  }`
+
+  if (callbackContext.inline_message_id) {
+    gameLink = `${gameLink}&user_id=${
+      callbackContext.from.id
+    }&inline_message_id=${
+      callbackContext.inline_message_id
+    }`
+  } else {
+    gameLink = `${gameLink}&user_id=${
+      callbackContext.from.id
+    }&message_id=${
+      callbackContext.message.message_id
+    }&chat_id=${callbackContext.message.chat.id}`
+  }
+
+  ctx.answerGameQuery(gameLink);
+});
+
+bot.on('message', async (ctx) => {
+  const text = ctx.update.message.text; 
  
   if (games.hasOwnProperty(text)) {
-    await playGame(text, msg, bot, games);
+    const markup = Markup.inlineKeyboard([
+      Markup.button.game('🎮 Play now!'),
+      Markup.button.url('Play with friends', 'https://telegram.me/ChampionfyGameBot?game=tetris')
+    ])
+    ctx.replyWithGame('tetris', markup);
   } else {
     const messageForFalseCommand = `👀 Sorry friend! Didn't understand that one. \n\nCan you help a hamster 🐹 out and pick one of the options below 👇👇👇`;
     bot.telegram.sendMessage(
-      msg.update.message.chat.id,
+      ctx.chat.id,
       messageForFalseCommand,
       homeKeyboard,
     );
