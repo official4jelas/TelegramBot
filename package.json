@@ -18,9 +18,12 @@
   },
   "homepage": "https://github.com/bhavnesh2211/TelegramBot#readme",
   "dependencies": {
+    "@sentry/node": "^6.16.1",
+    "@sentry/tracing": "^6.16.1",
     "axios": "^0.23.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "mixpanel": "^0.14.0",
     "nodemon": "^2.0.13",
     "telegraf": "^4.4.2"
   }
